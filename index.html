@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ro" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI: Inginerie & Gaming | Proiect Naționala</title>
+    
+    <!-- Tailwind CSS (Framework-ul nr 1 in prezent pt design) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonturi Premium Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Configurare Custom Tailwind pentru Culori si Animatii -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        heading: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        deep: '#030712', /* Fundal ultra-dark */
+                        cyber: '#00f2fe',
+                        neon: '#8b5cf6',
+                    },
+                    animation: {
+                        'gradient-x': 'gradient-x 3s ease infinite',
+                        'blob': 'blob 7s infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            },
+                        },
+                        'blob': {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* SCROLLBAR CUSTOM */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #00f2fe, #8b5cf6); border-radius: 10px; }
+
+        /* EFECTE DE STICLĂ (GLASSMORPHISM) */
+        .glass-card {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        /* HOVER EFECT BOMBA PE CARDURI */
+        .glass-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(0, 242, 254, 0.4);
+            box-shadow: 0 20px 40px rgba(0, 242, 254, 0.15), 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+
+        /* TEXT GRADIENT ANIMAT */
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #00f2fe, #4facfe, #8b5cf6, #00f2fe);
+            background-size: 300% auto;
+        }
+
+        /* ANIMATII LA SCROLL (REVEAL) */
+        .reveal {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.8s ease-out;
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Efecte specifice pentru delay */
+        .delay-100 { transition-delay: 100ms; }
+        .delay-200 { transition-delay: 200ms; }
+        .delay-300 { transition-delay: 300ms; }
+        
+        body { background-color: #030712; color: #e2e8f0; overflow-x: hidden; }
+
+        /* Markdown Styles for AI Output */
+        .ai-output strong { color: #fff; font-weight: 700; }
+        .ai-output p { margin-bottom: 1rem; }
+        
+        /* Audio Player Customization */
+        audio {
+            filter: invert(90%) hue-rotate(180deg);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-cyber selection:text-deep">
+
+    <!-- NAVBAR STICLĂ -->
+    <nav class="fixed w-full z-50 top-0 transition-all duration-300 glass-card border-b-0 border-white/10" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="https://cnsm.ro/" target="_blank" rel="noopener noreferrer" class="relative group cursor-pointer block">
+                <div class="absolute -inset-1 bg-gradient-to-r from-cyber to-neon rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-500 group-hover:duration-200"></div>
+                <div class="relative font-heading font-black text-2xl tracking-widest text-white px-4 py-1.5 bg-deep/80 rounded-lg border border-white/10 group-hover:border-cyber/50 transition-all">
+                    CNSM
+                </div>
+            </a>
+            <div class="hidden md:flex gap-8 font-semibold text-sm tracking-wide">
+                <a href="#intro" class="hover:text-cyber transition-colors">INTRO</a>
+                <a href="#inginerie" class="hover:text-cyber transition-colors">INGINERIE</a>
+                <a href="#gaming" class="hover:text-cyber transition-colors">GAMING</a>
+                <a href="#ai-lab" class="text-yellow-400 hover:text-white transition-colors">✨ AI LAB</a>
+                <a href="#simulare1" class="text-neon hover:text-white transition-colors">🎮 SIMULĂRI</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        <div class="absolute top-0 -left-4 w-72 h-72 bg-cyber rounded-full mix-blend-multiply filter blur-[128px] opacity-40 animate-blob"></div>
+        <div class="absolute top-0 -right-4 w-72 h-72 bg-neon rounded-full mix-blend-multiply filter blur-[128px] opacity-40 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-8 left-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-40 animate-blob animation-delay-4000"></div>
+
+        <div class="relative z-10 text-center px-4 max-w-5xl mx-auto reveal active">
+            <div class="inline-block px-4 py-1.5 rounded-full border border-cyber/30 bg-cyber/10 text-cyber font-bold tracking-wider text-sm mb-6 animate-float">
+                Proiect pentru Simpozion „OMUL - FIINȚĂ RAȚIONALĂ”
+            </div>
+            <h1 class="font-heading text-6xl md:text-8xl font-bold mb-6 leading-tight">
+                Impactul <br>
+                <span class="text-gradient animate-gradient">Inteligenței Artificiale</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-slate-400 mb-10 max-w-3xl mx-auto font-light">
+                O analiză a modului în care AI transformă două lumi aparent paralele: <strong class="text-white">Ingineria Civilă</strong> și <strong class="text-white">Industria Jocurilor Video</strong>.
+            </p>
+            <a href="#intro" class="inline-flex items-center gap-2 bg-white text-deep px-8 py-4 rounded-full font-bold hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all">
+                Explorează Analiza
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+            </a>
+
+            <!-- CREDENȚIALE PROIECT -->
+            <div class="mt-12 flex flex-wrap justify-center items-center gap-4 px-6 py-3 glass-card rounded-full text-sm text-slate-300 mx-auto max-w-fit">
+                <div class="flex flex-wrap items-center justify-center gap-3 text-slate-300">
+                    <a href="https://www.instagram.com/caprioara._.magika/" target="_blank" rel="noopener noreferrer" class="hover:text-pink-400 transition-colors font-medium hover:underline">Iftime Andrei</a>
+                    <span class="text-white/20 hidden sm:inline">•</span>
+                    <a href="https://www.instagram.com/big_vik15/" target="_blank" rel="noopener noreferrer" class="hover:text-pink-400 transition-colors font-medium hover:underline">Bistricianu Victor</a>
+                    <span class="text-white/20 hidden sm:inline">•</span>
+                    <a href="https://www.instagram.com/they_call.me_bashky/" target="_blank" rel="noopener noreferrer" class="hover:text-pink-400 transition-colors font-medium hover:underline">Amihăilesei Teodor</a>
+                    <span class="text-white/20 hidden sm:inline">•</span>
+                    <a href="https://www.instagram.com/vmihai77/" target="_blank" rel="noopener noreferrer" class="hover:text-pink-400 transition-colors font-medium hover:underline">Hrincă Mihai</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- INTRODUCERE -->
+    <section id="intro" class="py-24 relative z-10">
+        <div class="max-w-4xl mx-auto px-6 text-center reveal">
+            <h2 class="font-heading text-4xl md:text-5xl font-bold mb-8 text-white">Zorii unei noi ere 🧠</h2>
+            <div class="glass-card p-10 rounded-3xl text-lg md:text-xl text-slate-300 leading-relaxed text-left">
+                <p class="mb-6">
+                    <strong class="text-cyber">Inteligența Artificială (AI)</strong> este un domeniu al informaticii care dezvoltă sisteme capabile să simuleze procese umane precum învățarea, raționamentul și luarea deciziilor.
+                </p>
+                <p>
+                    Datorită progresului rapid în Machine Learning, Deep Learning și creșterii volumului de date (Big Data), AI a devenit o tehnologie esențială. În acest proiect analizăm impactul AI în două domenii surprinzător de conectate:
+                </p>
+                <div class="flex flex-col md:flex-row gap-4 mt-8 justify-center">
+                    <div class="bg-blue-900/40 border border-blue-500/30 px-6 py-3 rounded-xl text-blue-300 font-bold text-center">🏗️ Ingineria Civilă</div>
+                    <div class="bg-purple-900/40 border border-purple-500/30 px-6 py-3 rounded-xl text-purple-300 font-bold text-center">🎮 Jocuri Video</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- INGINERIE CIVILĂ -->
+    <section id="inginerie" class="py-24 relative">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16 reveal">
+                <h2 class="font-heading text-5xl font-bold mb-4 text-white">1. AI în Ingineria Civilă <span class="text-cyber">🏗️</span></h2>
+                <p class="text-slate-400 text-xl max-w-2xl mx-auto">Automatizare, analiză avansată și proiectare generativă pentru infrastructura viitorului.</p>
+            </div>
+            <!-- Structură carduri omisă pentru concizie, păstrăm codul original -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="glass-card p-8 rounded-2xl reveal delay-100">
+                    <div class="text-4xl mb-4 text-cyber">📐</div>
+                    <h3 class="text-2xl font-bold text-white mb-4 font-heading">Proiectare inteligentă</h3>
+                    <ul class="text-slate-400 space-y-2 list-none">
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Generare automată a designului</li>
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Optimizarea formelor și materialelor</li>
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Reducerea drastică a erorilor umane</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-8 rounded-2xl reveal delay-200">
+                    <div class="text-4xl mb-4 text-cyber">🛡️</div>
+                    <h3 class="text-2xl font-bold text-white mb-4 font-heading">Siguranță structurală</h3>
+                    <ul class="text-slate-400 space-y-2 list-none">
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Simularea comportamentului în condiții reale</li>
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Detectarea defectelor prin analiza imaginilor</li>
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Monitorizare structurală în timp real</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-8 rounded-2xl reveal delay-300">
+                    <div class="text-4xl mb-4 text-cyber">🏗️</div>
+                    <h3 class="text-2xl font-bold text-white mb-4 font-heading">Management Șantier</h3>
+                    <ul class="text-slate-400 space-y-2 list-none">
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Planificare automată a etapelor</li>
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Estimarea predictivă a costurilor</li>
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Drone și roboți autonomi pe șantier</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-8 rounded-2xl reveal delay-100 lg:col-span-1 md:col-span-2">
+                    <div class="text-4xl mb-4 text-cyber">🌱</div>
+                    <h3 class="text-2xl font-bold text-white mb-4 font-heading">Sustenabilitate</h3>
+                    <ul class="text-slate-400 space-y-2 list-none">
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Optimizarea consumului energetic</li>
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Proiectarea clădirilor ecologice net-zero</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-8 rounded-2xl reveal delay-200 lg:col-span-2 md:col-span-2">
+                    <div class="text-4xl mb-4 text-cyber">🏙️</div>
+                    <h3 class="text-2xl font-bold text-white mb-4 font-heading">Smart Cities</h3>
+                    <ul class="text-slate-400 space-y-2 list-none">
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Management inteligent al traficului</li>
+                        <li class="flex items-start gap-2"><span class="text-cyber mt-1">▹</span> Sisteme automate de iluminat adaptiv</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GAMING -->
+    <section id="gaming" class="py-24 relative bg-slate-900/30 border-y border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16 reveal">
+                <h2 class="font-heading text-5xl font-bold mb-4 text-white">2. AI în Gaming <span class="text-neon">🎮</span></h2>
+                <p class="text-slate-400 text-xl max-w-2xl mx-auto">Crearea unor experiențe imersive, dinamice și lumi infinite generate procedural.</p>
+            </div>
+            <!-- Structură carduri -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="glass-card p-8 rounded-2xl border-neon/30 hover:border-neon reveal delay-100">
+                    <div class="text-4xl mb-4 text-neon">🤖</div>
+                    <h3 class="text-2xl font-bold text-white mb-4 font-heading">NPC-uri inteligente</h3>
+                    <ul class="text-slate-400 space-y-2 list-none">
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Personaje care reacționează realist</li>
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Adaptare la stilul jucătorului</li>
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Dialoguri dinamice generate de LLM-uri</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-8 rounded-2xl border-neon/30 hover:border-neon reveal delay-200">
+                    <div class="text-4xl mb-4 text-neon">🌍</div>
+                    <h3 class="text-2xl font-bold text-white mb-4 font-heading">Generare procedurală</h3>
+                    <ul class="text-slate-400 space-y-2 list-none">
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Crearea automată de lumi și hărți</li>
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Universuri infinite (ex. No Man's Sky)</li>
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Reducerea timpului de dezvoltare</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-8 rounded-2xl border-neon/30 hover:border-neon reveal delay-300">
+                    <div class="text-4xl mb-4 text-neon">👁️</div>
+                    <h3 class="text-2xl font-bold text-white mb-4 font-heading">Realism grafic</h3>
+                    <ul class="text-slate-400 space-y-2 list-none">
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Upscaling inteligent (NVIDIA DLSS)</li>
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Simulări fizice avansate în timp real</li>
+                        <li class="flex items-start gap-2"><span class="text-neon mt-1">▹</span> Generare de animații fluide</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-8 rounded-2xl border-neon/30 hover:border-neon reveal delay-100 lg:col-span-3">
+                    <div class="flex flex-col md:flex-row gap-8 items-center">
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-bold text-white mb-4 font-heading">⚙️ Testare & Experiență Personalizată</h3>
+                            <p class="text-slate-400 mb-4">AI este folosit masiv pentru Quality Assurance (QA). Agenții AI joacă jocul de milioane de ori pentru a detecta bug-uri invizibile omului, reducând enorm costurile studioului.</p>
+                            <p class="text-slate-400">Mai mult, AI monitorizează stresul și abilitatea jucătorului, ajustând dificultatea jocului în timp real pentru a menține starea de "Flow".</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- IMPACT PRO/CONTRA & COMPARATIE -->
+    <section class="py-24 relative">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="font-heading text-4xl font-bold text-center text-white mb-16 reveal">Impact Global & Analiză 📊</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+                <!-- IMPACT POZITIV -->
+                <div class="glass-card p-8 rounded-3xl border-green-500/30 relative overflow-hidden reveal">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/10 blur-[50px]"></div>
+                    <h3 class="text-2xl font-bold text-green-400 mb-6 flex items-center gap-3">
+                        <span class="bg-green-500/20 p-2 rounded-lg">✅</span> Impact Pozitiv
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="border-b border-white/5 pb-4">
+                            <strong class="text-white block mb-1">1. Reducerea traficului & Poluării</strong>
+                            <span class="text-slate-400 text-sm">Semafoare inteligente care scurtează timpul de deplasare.</span>
+                        </div>
+                        <div class="border-b border-white/5 pb-4">
+                            <strong class="text-white block mb-1">2. Eficiență în Construcții</strong>
+                            <span class="text-slate-400 text-sm">Planificare perfectă, mai puține erori și costuri optimizate.</span>
+                        </div>
+                        <div>
+                            <strong class="text-white block mb-1">3. Siguranță Supremă</strong>
+                            <span class="text-slate-400 text-sm">Detectarea defectelor înainte ca structura să cedeze.</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- IMPACT NEGATIV -->
+                <div class="glass-card p-8 rounded-3xl border-red-500/30 relative overflow-hidden reveal delay-100">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-[50px]"></div>
+                    <h3 class="text-2xl font-bold text-red-400 mb-6 flex items-center gap-3">
+                        <span class="bg-red-500/20 p-2 rounded-lg">⚠️</span> Riscuri și Provocări
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="border-b border-white/5 pb-4">
+                            <strong class="text-white block mb-1">1. Dislocarea Locurilor de Muncă</strong>
+                            <span class="text-slate-400 text-sm">Automatizarea reduce nevoia de muncă manuală pe șantiere.</span>
+                        </div>
+                        <div class="border-b border-white/5 pb-4">
+                            <strong class="text-white block mb-1">2. Costuri Inițiale Enorme</strong>
+                            <span class="text-slate-400 text-sm">Implementarea sistemelor AI necesită bugete de milioane.</span>
+                        </div>
+                        <div>
+                            <strong class="text-white block mb-1">3. Dependența Tehnologică</strong>
+                            <span class="text-slate-400 text-sm">O eroare de software într-o clădire inteligentă poate fi fatală.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- TABEL COMPARATIV STILIZAT -->
+            <div class="glass-card rounded-3xl overflow-hidden reveal p-1">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white/5 text-white">
+                            <th class="p-5 font-bold font-heading text-lg">Aspect</th>
+                            <th class="p-5 font-bold font-heading text-lg text-cyber">🏗️ Inginerie Civilă</th>
+                            <th class="p-5 font-bold font-heading text-lg text-neon">🎮 Jocuri Video</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-300 divide-y divide-white/5">
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-5 font-semibold text-white">Scop Principal</td>
+                            <td class="p-5">Siguranță și infrastructură fizică</td>
+                            <td class="p-5">Divertisment și imersiune virtuală</td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-5 font-semibold text-white">Tip de AI utilizat</td>
+                            <td class="p-5">Analiză predictivă, Viziune Computerizată</td>
+                            <td class="p-5">Algoritmi de comportament, Generare AI</td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-5 font-semibold text-white">Impact Asupra Vieții</td>
+                            <td class="p-5">Real, fizic, modifică mediul înconjurător</td>
+                            <td class="p-5">Virtual, psihologic, cognitiv</td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-5 font-semibold text-white">Risc de Eșec</td>
+                            <td class="p-5"><span class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-sm font-bold">Critically High</span></td>
+                            <td class="p-5"><span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-bold">Low (Bug-uri)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONCLUZIE / VIITOR -->
+    <section class="py-24 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-cyber/10 opacity-50"></div>
+        <div class="max-w-4xl mx-auto px-6 text-center relative z-10 reveal">
+            <h2 class="font-heading text-5xl font-bold mb-8 text-white">Viitorul este Colaborativ 🤝</h2>
+            <p class="text-2xl text-slate-300 font-light mb-10 leading-relaxed">
+                AI <strong class="text-white">nu înlocuiește omul</strong>, ci îi amplifică abilitățile. Fie că proiectăm poduri care sfidează gravitația sau lumi virtuale pe care le explorăm, viitorul aparține simbiozei dintre <span class="text-cyber font-bold">creativitatea umană</span> și <span class="text-neon font-bold">puterea de calcul a mașinilor</span>.
+            </p>
+        </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- AI EXPERIMENT LAB (Integrare Gemini API) -->
+    <!-- ========================================================================= -->
+    <section id="ai-lab" class="py-20 relative bg-deep border-y border-white/10 z-20">
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNHYtNGgtMnY0aC00djJoNHY0aDJ2LTRoNHYtMmgtNHptMC0zMFYwaC0ydjRoLTR2Mmg0djRoMnYtNGg0VjJoLTR6bS0xMSAySDEydjJoMTN2LTR6TTEyIDI4aDEzdjJoLTEzdi00em0yMC0xM2gxM3YyaC0xM3YtNHptMCAyMmgxM3YyaC0xM3YtNHoiIGZpbGw9IiM4YjVjZjYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvZz48L3N2Zz4=')] opacity-50"></div>
+        <div class="max-w-4xl mx-auto px-6 relative reveal">
+            
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center justify-center p-3 bg-yellow-400/10 rounded-full mb-4">
+                    <span class="text-3xl">✨</span>
+                </div>
+                <h2 class="font-heading text-4xl font-bold text-white mb-4">Laboratorul AI Live</h2>
+                <p class="text-slate-400 text-lg">Testează chiar acum! Pune o întrebare sau propune un scenariu despre arhitectură, inginerie sau gaming, iar AI-ul nostru va genera un răspuns pe loc.</p>
+            </div>
+
+            <div class="glass-card p-6 md:p-8 rounded-3xl border-yellow-400/20 shadow-[0_0_40px_rgba(250,204,21,0.05)]">
+                <!-- Input Area -->
+                <div class="mb-6">
+                    <label for="ai-prompt" class="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wider">Scenariul tău:</label>
+                    <textarea id="ai-prompt" rows="3" class="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white placeholder-slate-500 focus:outline-none focus:border-yellow-400/50 focus:ring-1 focus:ring-yellow-400/50 transition-all resize-none" placeholder="Ex: Cum ar folosi o echipă de gaming AI-ul pentru a crea un oraș cyberpunk uriaș?"></textarea>
+                    
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        <button id="mic-btn" onclick="startDictation()" class="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-300 py-1.5 px-3 rounded-full transition-colors border border-red-500/20 flex items-center gap-1" title="Vorbește la microfon">
+                            🎤 Dictare Vocală
+                        </button>
+                        <button onclick="fillPrompt('Cum optimizează AI materialele pentru un zgârie-nori rezistent la cutremure?')" class="text-xs bg-white/5 hover:bg-white/10 text-slate-300 py-1.5 px-3 rounded-full transition-colors border border-white/5">🏗️ Exemplu Inginerie</button>
+                        <button onclick="fillPrompt('Cum funcționează generarea procedurală a hărților într-un joc open-world?')" class="text-xs bg-white/5 hover:bg-white/10 text-slate-300 py-1.5 px-3 rounded-full transition-colors border border-white/5">🎮 Exemplu Gaming</button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button id="generate-btn" onclick="askGemini()" class="w-full relative group overflow-hidden bg-white text-deep font-bold text-lg py-4 rounded-xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+                    <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <span class="relative flex items-center gap-2">
+                        Generează Răspuns ✨
+                    </span>
+                </button>
+
+                <!-- Loading State -->
+                <div id="ai-loading" class="hidden mt-8 text-center py-8">
+                    <div class="inline-block w-8 h-8 border-4 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mb-4"></div>
+                    <p class="text-yellow-400/80 text-sm font-medium animate-pulse">AI-ul analizează scenariul tău...</p>
+                </div>
+
+                <!-- Output Area -->
+                <div id="ai-output-container" class="hidden mt-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-cyber to-neon flex items-center justify-center text-xs shadow-lg">🤖</div>
+                        <h4 class="text-white font-bold font-heading text-lg">Răspuns Generat:</h4>
+                    </div>
+                    <div id="ai-output-text" class="ai-output bg-black/40 border border-white/5 rounded-xl p-6 text-slate-300 text-sm md:text-base leading-relaxed">
+                        <!-- Rezultatul va apărea aici -->
+                    </div>
+
+                    <!-- TTS Section -->
+                    <div id="tts-container" class="hidden mt-4 flex flex-col items-start gap-4 p-4 border border-cyber/20 bg-cyber/5 rounded-xl">
+                        <p class="text-sm text-slate-400 mb-1">Dorești să asculți acest răspuns?</p>
+                        <button id="tts-btn" onclick="generateTTS()" class="bg-cyber/20 hover:bg-cyber/30 text-cyber border border-cyber/50 px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
+                            <span id="tts-icon">🔊</span> <span id="tts-text">Citește Răspunsul</span>
+                        </button>
+                        
+                        <!-- Audio Player -->
+                        <div id="audio-player-container" class="hidden w-full mt-2">
+                            <audio id="audio-player" controls class="w-full h-10 rounded-full"></audio>
+                            <p class="text-xs text-slate-500 mt-2 text-right">*Voce generată de Gemini TTS</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SIMULARE 1 (PODUL) -->
+    <section id="simulare1" class="relative w-full h-screen bg-black overflow-hidden group border-t border-white/10">
+        <iframe src="Simulare1.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Pod"></iframe>
+        <div class="absolute inset-0 flex items-center justify-center text-slate-700 font-bold -z-10">
+            [Aici se randează Canvas-ul pentru Simulare Pod]
+        </div>
+        <div class="absolute bottom-10 left-10 md:w-[450px] p-6 glass-card rounded-2xl shadow-2xl transition-transform duration-500 group-hover:-translate-y-2 z-20">
+            <h3 class="text-2xl font-bold text-white mb-2 font-heading flex items-center gap-3">
+                <span class="text-cyber text-3xl">🧩</span> Simulare Pod
+            </h3>
+            <p class="text-xs text-cyber/70 uppercase tracking-widest mb-4 font-bold">Simulare Fizică</p>
+            <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                Această simulare demonstrează distribuția forțelor (tensiune și compresie) într-o structură supusă gravitației și sarcinilor externe.
+            </p>
+            <div class="bg-cyber/10 border border-cyber/20 p-3 rounded-lg flex items-start gap-3">
+                <span class="text-cyber text-xl mt-0.5">💡</span>
+                <p class="text-xs text-cyber font-medium leading-relaxed">
+                    <strong class="text-white">Intervenția AI:</strong> Un algoritm AI poate rula milioane de astfel de simulări într-o secundă pentru a găsi forma geometrică perfectă.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SIMULARE 2 (STRUCTURĂ PLUTITOARE) -->
+    <section id="simulare2" class="relative w-full h-screen bg-black overflow-hidden group border-t border-white/10">
+        <iframe src="Simulare2.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Apa"></iframe>
+        <div class="absolute inset-0 flex items-center justify-center text-slate-700 font-bold -z-10">
+            [Aici se randează Canvas-ul pentru Simulare Apă]
+        </div>
+        <div class="absolute bottom-10 right-10 md:w-[450px] p-6 glass-card rounded-2xl shadow-2xl transition-transform duration-500 group-hover:-translate-y-2 z-20">
+            <h3 class="text-2xl font-bold text-white mb-2 font-heading flex items-center gap-3">
+                <span class="text-neon text-3xl">🌊</span> Structură Plutitoare
+            </h3>
+            <p class="text-xs text-neon/70 uppercase tracking-widest mb-4 font-bold">Dinamica Fluidelor</p>
+            <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                Evidențiază comportamentul obiectelor în apă, calculând flotabilitatea, presiunea apei și efectele distrugerii structurale asupra stabilității.
+            </p>
+            <div class="bg-neon/10 border border-neon/20 p-3 rounded-lg flex items-start gap-3">
+                <span class="text-neon text-xl mt-0.5">💡</span>
+                <p class="text-xs text-neon font-medium leading-relaxed">
+                    <strong class="text-white">Intervenția AI:</strong> AI prezice comportamentul platformelor petroliere sau al orașelor plutitoare viitoare în situații meteo extreme.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-black py-8 text-center text-slate-500 text-sm border-t border-white/10">
+        <p>Proiect Național de Excelență &copy; 2026. Creat cu inovație.</p>
+    </footer>
+
+    <!-- SCRIPT PENTRU ANIMAȚII ȘI INTEGRARE GEMINI API -->
+    <script>
+        // Funcționalități UI (Scroll, Navbar)
+        document.addEventListener('DOMContentLoaded', () => {
+            const reveals = document.querySelectorAll('.reveal');
+            const revealOnScroll = () => {
+                const windowHeight = window.innerHeight;
+                const elementVisible = 100;
+                reveals.forEach((reveal) => {
+                    const elementTop = reveal.getBoundingClientRect().top;
+                    if (elementTop < windowHeight - elementVisible) {
+                        reveal.classList.add('active');
+                    }
+                });
+            };
+            window.addEventListener('scroll', revealOnScroll);
+            revealOnScroll();
+
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('bg-deep/80', 'backdrop-blur-xl', 'shadow-lg');
+                    navbar.classList.remove('border-b-0');
+                } else {
+                    navbar.classList.remove('bg-deep/80', 'backdrop-blur-xl', 'shadow-lg');
+                    navbar.classList.add('border-b-0');
+                }
+            });
+        });
+
+        // Completare automată pentru exemple
+        function fillPrompt(text) {
+            const textarea = document.getElementById('ai-prompt');
+            textarea.value = text;
+            textarea.focus();
+        }
+
+        // ==========================================
+        // INTEGRARE GEMINI API ✨
+        // ==========================================
+        
+        // Cheia API este furnizată automat de mediul de execuție Canvas
+        const apiKey = ""; 
+        
+        // Variabilă globală pentru a stoca textul brut pentru TTS
+        window.lastGeneratedText = "";
+
+        // Funcție auxiliară pentru parsarea simplă a textului Markdown generat de AI
+        function parseMarkdown(text) {
+            let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+            html = html.replace(/\n\n/g, '</p><p>'); // Paragrafe noi
+            html = html.replace(/\n/g, '<br>'); // Linii noi
+            return '<p>' + html + '</p>';
+        }
+
+        // --- SPEECH TO TEXT (Recunoaștere Vocală) ---
+        function startDictation() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Browserul tău nu suportă recunoașterea vocală. Încearcă Google Chrome sau Microsoft Edge.");
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ro-RO';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            const micBtn = document.getElementById('mic-btn');
+            const originalHTML = micBtn.innerHTML;
+            
+            micBtn.innerHTML = '🔴 Ascult...';
+            micBtn.classList.add('animate-pulse', 'bg-red-500/30', 'text-white');
+
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                const textarea = document.getElementById('ai-prompt');
+                // Adaugă textul vorbit la cel existent
+                textarea.value = textarea.value + (textarea.value ? ' ' : '') + transcript;
+                
+                resetMicBtn(micBtn, originalHTML);
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Eroare recunoastere vocala:", event.error);
+                resetMicBtn(micBtn, originalHTML);
+            };
+            
+            recognition.onend = function() {
+                resetMicBtn(micBtn, originalHTML);
+            };
+        }
+
+        function resetMicBtn(btn, originalHTML) {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('animate-pulse', 'bg-red-500/30', 'text-white');
+        }
+
+
+        async function askGemini() {
+            const promptInput = document.getElementById('ai-prompt').value.trim();
+            if (!promptInput) return;
+
+            const btn = document.getElementById('generate-btn');
+            const loading = document.getElementById('ai-loading');
+            const outputContainer = document.getElementById('ai-output-container');
+            const outputText = document.getElementById('ai-output-text');
+            const ttsContainer = document.getElementById('tts-container');
+
+            // Resetare stare TTS
+            ttsContainer.classList.add('hidden');
+            document.getElementById('audio-player-container').classList.add('hidden');
+            document.getElementById('audio-player').src = "";
+            document.getElementById('tts-btn').classList.remove('hidden');
+
+            // Set UI to Loading
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            outputContainer.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            const systemPrompt = `Ești un asistent AI expert în analizarea impactului Inteligenței Artificiale în două domenii specifice: Ingineria Civilă și Industria Jocurilor Video. 
+            Te afli pe un site educațional, parte dintr-un proiect de nivel național din România. 
+            Vei primi o întrebare sau un scenariu de la un utilizator. 
+            Răspunde concis (maxim 2-3 paragrafe), profesionist, la obiect, și explică cum s-ar aplica AI-ul în acea situație exactă. 
+            Folosește mereu limba română. Fii inspirațional.`;
+
+            const fullPrompt = promptInput;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: fullPrompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            // Exponential Backoff Logic
+            let delay = 1000;
+            let retries = 5;
+            let success = false;
+            let data = null;
+
+            while (retries > 0 && !success) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    data = await response.json();
+                    success = true;
+                } catch (error) {
+                    retries--;
+                    if (retries === 0) {
+                        console.error("API Error after retries:", error);
+                        break;
+                    }
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+
+            // Reset UI
+            loading.classList.add('hidden');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            // Afișare răspuns
+            if (success && data && data.candidates && data.candidates[0].content) {
+                const rawText = data.candidates[0].content.parts[0].text;
+                
+                // Salvăm textul curățat pentru citirea ulterioară
+                window.lastGeneratedText = rawText.replace(/\*/g, '').replace(/#/g, ''); 
+                
+                outputText.innerHTML = parseMarkdown(rawText);
+                outputContainer.classList.remove('hidden');
+                ttsContainer.classList.remove('hidden'); // Arătăm opțiunea de citire
+                
+                // Scroll lin către rezultat
+                outputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                outputText.innerHTML = `<p class="text-red-400">Ne pare rău, a apărut o eroare la conectarea cu AI-ul. Te rugăm să încerci din nou mai târziu.</p>`;
+                outputContainer.classList.remove('hidden');
+            }
+        }
+
+        // --- TEXT TO SPEECH (Generare Voce Gemini) ---
+        async function generateTTS() {
+            if (!window.lastGeneratedText) return;
+
+            const ttsBtn = document.getElementById('tts-btn');
+            const ttsIcon = document.getElementById('tts-icon');
+            const ttsText = document.getElementById('tts-text');
+            const audioPlayerContainer = document.getElementById('audio-player-container');
+            const audioPlayer = document.getElementById('audio-player');
+
+            ttsBtn.disabled = true;
+            const originalIcon = ttsIcon.innerHTML;
+            ttsIcon.innerHTML = `<div class="w-4 h-4 border-2 border-cyber/30 border-t-cyber rounded-full animate-spin"></div>`;
+            ttsText.innerText = "Se generează vocea...";
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+            const promptForTTS = "Citește următorul text pe un ton clar, profesional și captivant în limba română: " + window.lastGeneratedText;
+
+            const payload = {
+                contents: [{ parts: [{ text: promptForTTS }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: "Aoede" } // Voce narativă
+                        }
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+
+            let delay = 1000;
+            let retries = 5;
+            let success = false;
+            let data = null;
+
+            while (retries > 0 && !success) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    data = await response.json();
+                    success = true;
+                } catch (error) {
+                    retries--;
+                    if (retries === 0) break;
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+
+            ttsIcon.innerHTML = originalIcon;
+            ttsText.innerText = "Citește Răspunsul";
+
+            if (success && data && data.candidates && data.candidates[0].content.parts[0].inlineData) {
+                const base64Audio = data.candidates[0].content.parts[0].inlineData.data;
+                const audioUrl = pcmToWav(base64Audio, 24000); 
+                
+                audioPlayer.src = audioUrl;
+                audioPlayerContainer.classList.remove('hidden');
+                ttsBtn.classList.add('hidden'); 
+                
+                audioPlayer.play().catch(e => console.log("Autoplay blockat de browser"));
+            } else {
+                ttsText.innerText = "Eroare la generare";
+                ttsBtn.classList.add('text-red-400', 'border-red-400/50');
+                setTimeout(() => {
+                    ttsBtn.disabled = false;
+                    ttsBtn.classList.remove('text-red-400', 'border-red-400/50');
+                    ttsText.innerText = "Încearcă din nou";
+                }, 3000);
+            }
+        }
+
+        // Decodor PCM16 la WAV
+        function pcmToWav(base64Data, sampleRate = 24000) {
+            const binaryString = atob(base64Data);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            const buffer = new ArrayBuffer(44 + bytes.length);
+            const view = new DataView(buffer);
+            
+            const writeString = (view, offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+            
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + bytes.length, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, bytes.length, true);
+            
+            const pcmData = new Uint8Array(buffer, 44);
+            pcmData.set(bytes);
+            
+            const blob = new Blob([view], { type: 'audio/wav' });
+            return URL.createObjectURL(blob);
+        }
+    </script>
+</body>
+</html>

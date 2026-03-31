@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Sandbox 2D - Cinematic Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #020617;
+            font-family: 'Inter', sans-serif;
+            touch-action: none;
+            color: #e2e8f0;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%;
+            pointer-events: none; padding: 20px; box-sizing: border-box;
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+
+        .header { pointer-events: auto; display: flex; flex-direction: column; gap: 15px; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 { 
+            margin: 0 0 8px 0; font-size: 1.4rem; font-weight: 800; 
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-transform: uppercase; letter-spacing: 1.5px;
+        }
+
+        .stats {
+            display: flex; flex-direction: column; gap: 4px;
+        }
+
+        .stat-line { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #94a3b8; }
+        .stat-line span { color: #e2e8f0; font-weight: 600; }
+        .stat-danger { color: #f87171 !important; }
+
+        .toolbar {
+            display: flex; gap: 8px; flex-wrap: wrap; max-width: 450px;
+            pointer-events: auto;
+        }
+
+        button {
+            background: rgba(30, 41, 59, 0.6); color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px 14px; border-radius: 8px; cursor: pointer;
+            font-size: 0.85rem; font-weight: 600; font-family: 'Inter', sans-serif;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        
+        button:hover { 
+            background: rgba(51, 65, 85, 0.8); color: #fff;
+            transform: translateY(-1px);
+        }
+        
+        button.active { 
+            background: rgba(14, 165, 233, 0.2); 
+            border-color: rgba(14, 165, 233, 0.5);
+            color: #38bdf8;
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+        }
+        
+        button.danger { 
+            background: rgba(220, 38, 38, 0.2);
+            border-color: rgba(220, 38, 38, 0.5);
+            color: #f87171;
+        }
+        button.danger:hover { background: rgba(220, 38, 38, 0.4); color: #fff; }
+
+        .divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin: 0 4px; align-self: center; }
+
+        .controls-hint {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            font-size: 0.85rem; pointer-events: none; text-align: center;
+            letter-spacing: 0.5px;
+        }
+        
+        .controls-hint kbd {
+            background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2); font-family: monospace; color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div class="header">
+            <div class="glass-panel">
+                <h1>Floating Sandbox</h1>
+                <div class="stats">
+                    <div class="stat-line" id="debug-info">FPS: <span>0</span> &nbsp;|&nbsp; Nodes: <span>0</span> &nbsp;|&nbsp; Springs: <span>0</span></div>
+                    <div class="stat-line" id="physics-info">Mass: <span>0</span>t &nbsp;|&nbsp; Buoyancy: <span>0</span>kN &nbsp;|&nbsp; Breaches: <span class="stat-danger">0</span></div>
+                </div>
+            </div>
+
+            <div class="toolbar glass-panel" style="padding: 10px;">
+                <button onclick="sim.resetShip()">Respawn</button>
+                <button onclick="sim.togglePause()" id="btn-pause">Pause</button>
+                <button onclick="sim.toggleSpeedUp()" id="btn-speedup">2.5x Speed</button>
+                <div class="divider"></div>
+                <button onclick="sim.toggleGravity()" id="btn-grav" class="active">Gravity</button>
+                <button onclick="sim.toggleStressView()" id="btn-stress">Stress</button>
+                <button onclick="sim.toggleFollow()" id="btn-follow">Follow</button>
+            </div>
+        </div>
+
+        <div class="toolbar glass-panel" style="padding: 10px; flex-direction: column; gap: 8px;">
+            <button onclick="sim.setTool('drag')" id="tool-drag" class="active">✋ Drag</button>
+            <button onclick="sim.setTool('cut')" id="tool-cut">✂️ Cut</button>
+            <button onclick="sim.setTool('bomb')" id="tool-bomb">💣 Bomb</button>
+        </div>
+    </div>
+
+    <div class="controls-hint glass-panel">
+        <kbd>A</kbd> <kbd>D</kbd> or <kbd>←</kbd> <kbd>→</kbd> Move Ship &nbsp;|&nbsp; Right-Click + Drag: Pan &nbsp;|&nbsp; Scroll: Zoom
+    </div>
+
+    <canvas id="simCanvas"></canvas>
+
+<script>
+// --- 1. CONFIGURATION & CONSTANTS ---
+const CONFIG = {
+    gravity: 9.81 * 30,       
+    enginePower: 800,         
+    waterBaseLevel: 200,      
+    waterDensity: 35.0,       
+    waterDrag: 0.80,          
+    airDrag: 0.999,           
+    physicsSteps: 15,         
+    nodeSpacing: 18,          
+    bombRadius: 100,
+    bombForce: 120000,
+    cutRadius: 15,            
+    floodRate: 2.5,           
+    waterMassMult: 6.0,       
+};
+
+const MATERIALS = {
+    STEEL: { name: 'Steel', mass: 2.5, strength: 70, maxBuoyancy: 2500 },
+    WOOD:  { name: 'Wood',  mass: 0.8, strength: 30, maxBuoyancy: 3000 }
+};
+
+// --- 2. MATH & UTILITY ---
+function distSq(x1, y1, x2, y2) { return (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2); }
+
+function distToSegmentSq(px, py, v1x, v1y, v2x, v2y) {
+    let l2 = distSq(v1x, v1y, v2x, v2y);
+    if (l2 == 0) return distSq(px, py, v1x, v1y);
+    let t = ((px - v1x) * (v2x - v1x) + (py - v1y) * (v2y - v1y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return distSq(px, py, v1x + t * (v2x - v1x), v1y + t * (v2y - v1y));
+}
+
+// --- 3. AUDIO SYSTEM ---
+class AudioSystem {
+    constructor() {
+        this.ctx = null;
+        this.ready = false;
+        this.lastSplash = 0;
+        this.lastSnap = 0;
+        this.lastGrind = 0;
+    }
+
+    init() {
+        if (this.ready) return;
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.ready = true;
+            
+            this.engineOsc = this.ctx.createOscillator();
+            this.engineOsc.type = 'triangle';
+            this.engineOsc.frequency.setValueAtTime(40, this.ctx.currentTime);
+            this.engineGain = this.ctx.createGain();
+            this.engineGain.gain.setValueAtTime(0, this.ctx.currentTime);
+            
+            let filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(200, this.ctx.currentTime);
+            
+            this.engineOsc.connect(filter);
+            filter.connect(this.engineGain);
+            this.engineGain.connect(this.ctx.destination);
+            this.engineOsc.start();
+        } catch (e) {
+            console.warn("Web Audio API not supported", e);
+        }
+    }
+    
+    resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+
+    _playNoise(duration, type, freq, vol) {
+        if (!this.ready || !this.ctx) return;
+        const bufferSize = this.ctx.sampleRate * duration;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noiseSource = this.ctx.createBufferSource();
+        noiseSource.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = type;
+        filter.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+        noiseSource.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(this.ctx.destination);
+        noiseSource.start();
+    }
+
+    playExplosion() {
+        this._playNoise(1.5, 'lowpass', 400, 1.0);
+        if(!this.ready || !this.ctx) return;
+        let osc = this.ctx.createOscillator();
+        let gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(10, this.ctx.currentTime + 1.2);
+        gain.gain.setValueAtTime(1.5, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 1.2);
+    }
+
+    playSplash() {
+        let now = performance.now();
+        if (now - this.lastSplash > 80) {
+            this._playNoise(0.4, 'highpass', 800, 0.2);
+            this.lastSplash = now;
+        }
+    }
+
+    playSnap() {
+        let now = performance.now();
+        if (now - this.lastSnap > 50) {
+            this._playNoise(0.15, 'highpass', 2000, 0.4);
+            this.lastSnap = now;
+        }
+    }
+    
+    playGrind() {
+        let now = performance.now();
+        if (now - this.lastGrind > 100) {
+            this._playNoise(0.2, 'bandpass', 400, 0.3);
+            this.lastGrind = now;
+        }
+    }
+
+    setEngine(active) {
+        if (!this.ready || !this.ctx) return;
+        const targetGain = active ? 0.4 : 0.0;
+        this.engineGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.1);
+    }
+}
+
+// --- 4. PHYSICS ENTITIES ---
+class Particle {
+    constructor(x, y, material = MATERIALS.STEEL) {
+        this.x = x; this.y = y;
+        this.oldX = x; this.oldY = y;
+        this.origX = x; this.origY = y; 
+        
+        this.material = material;
+        this.baseMass = material.mass;
+        this.mass = this.baseMass;
+        
+        this.ax = 0; this.ay = 0; 
+        this.waterContent = 0;   
+        this.isExposed = false; 
+    }
+    applyForce(fx, fy) {
+        this.ax += fx / this.mass;
+        this.ay += fy / this.mass;
+    }
+}
+
+class Constraint {
+    constructor(p1, p2, isDiagonal = false) {
+        this.p1 = p1; this.p2 = p2;
+        this.restLength = Math.sqrt(distSq(p1.x, p1.y, p2.x, p2.y));
+        this.isDiagonal = isDiagonal;
+        this.isBroken = false;
+        
+        let avgStrength = (p1.material.strength + p2.material.strength) / 2;
+        let multi = isDiagonal ? 1.4 : 1.0;
+        this.breakLimit = avgStrength * multi;
+        this.stressRatio = 0;
+    }
+
+    solve(dt) {
+        if (this.isBroken) return;
+
+        let dx = this.p2.x - this.p1.x;
+        let dy = this.p2.y - this.p1.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist === 0) return;
+
+        let diff = (dist - this.restLength) / dist;
+        let absoluteStress = Math.abs(dist - this.restLength);
+        
+        this.stressRatio = absoluteStress / this.breakLimit;
+
+        if (absoluteStress > this.breakLimit) {
+            this.isBroken = true;
+            this.p1.isExposed = true;
+            this.p2.isExposed = true;
+            return;
+        }
+
+        let m1 = this.p1.mass;
+        let m2 = this.p2.mass;
+        let totalMass = m1 + m2;
+        
+        let stiffness = 0.9;
+        let offsetX = dx * diff * stiffness;
+        let offsetY = dy * diff * stiffness;
+
+        this.p1.x += offsetX * (m2 / totalMass);
+        this.p1.y += offsetY * (m2 / totalMass);
+        this.p2.x -= offsetX * (m1 / totalMass);
+        this.p2.y -= offsetY * (m1 / totalMass);
+    }
+}
+
+class VisualParticle {
+    constructor(x, y, vx, vy, color, life, type='splash') {
+        this.x = x; this.y = y;
+        this.vx = vx; this.vy = vy;
+        this.color = color;
+        this.life = life;
+        this.maxLife = life;
+        this.type = type;
+        this.size = type === 'smoke' ? Math.random() * 10 + 5 : Math.random() * 3 + 1;
+    }
+    update(dt) {
+        if (this.type === 'splash' || this.type === 'debris') {
+            this.vy += CONFIG.gravity * dt;
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+        } else if (this.type === 'smoke') {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            this.vy -= 40 * dt; // Smoke rises
+            this.vx *= 0.98; // Air friction
+            this.size += 8 * dt; // Expands over time
+        }
+        this.life -= dt;
+    }
+}
+
+// --- 5. CORE SIMULATOR ---
+class Simulator {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d', { alpha: false });
+        this.audio = new AudioSystem();
+
+        this.particles = [];
+        this.constraints = [];
+        this.vfx = [];
+        this.stars = [];
+        this.time = 0; 
+        
+        this.cam = { x: 0, y: 0, zoom: 1.0 };
+        this.gravityEnabled = true;
+        this.isPaused = false;
+        this.showStress = false;
+        this.followShip = false;
+        this.timeScale = 1.0; 
+        
+        this.currentTool = 'drag';
+        this.mouse = { screenX: 0, screenY: 0, worldX: 0, worldY: 0, leftDown: false, rightDown: false };
+        this.keys = { left: false, right: false };
+        this.draggedParticle = null;
+        
+        this.lastTime = performance.now();
+        this.accumulator = 0;
+        this.fixedDelta = 1 / 60;
+        
+        this.fps = 0;
+        this.framesThisSecond = 0;
+        this.lastFpsUpdate = performance.now();
+        this.debugStats = null;
+
+        this.init();
+    }
+
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        
+        this.canvas.addEventListener('mousedown', e => this.onMouseDown(e));
+        this.canvas.addEventListener('mousemove', e => this.onMouseMove(e));
+        window.addEventListener('mouseup', e => this.onMouseUp(e));
+        window.addEventListener('keydown', e => this.onKeyDown(e));
+        window.addEventListener('keyup', e => this.onKeyUp(e));
+        this.canvas.addEventListener('wheel', e => this.onWheel(e), {passive: false});
+        this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        this.generateStars();
+        this.resetShip();
+        requestAnimationFrame((time) => this.loop(time));
+    }
+
+    generateStars() {
+        this.stars = [];
+        for (let i = 0; i < 250; i++) {
+            this.stars.push({
+                x: (Math.random() - 0.5) * 6000,
+                y: (Math.random() - 1.0) * 3000, // Mostly in the sky
+                s: Math.random() * 1.5 + 0.5,
+                a: Math.random() * 0.8 + 0.2
+            });
+        }
+    }
+
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+
+    resetShip() {
+        this.particles = [];
+        this.constraints = [];
+        this.vfx = [];
+        
+        const cols = 55;
+        const rows = 12;
+        const sp = CONFIG.nodeSpacing;
+        
+        const startX = - (cols * sp) / 2;
+        const startY = -300; 
+        
+        const grid = [];
+        for (let y = 0; y < rows; y++) {
+            grid[y] = [];
+            for (let x = 0; x < cols; x++) {
+                let skip = false;
+                if (y > 5 && x < (y - 5) * 1.5) skip = true; 
+                if (y > 5 && x > cols - 1 - (y - 5) * 1.5) skip = true;
+                if (y < 3 && (x < 4 || x > cols - 5)) skip = true;
+
+                if (!skip) {
+                    let mat = (y < 4) ? MATERIALS.WOOD : MATERIALS.STEEL;
+                    let p = new Particle(startX + x * sp, startY + y * sp, mat);
+                    this.particles.push(p);
+                    grid[y][x] = p;
+                } else {
+                    grid[y][x] = null;
+                }
+            }
+        }
+
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                let p = grid[y][x];
+                if (!p) continue;
+                if (x < cols - 1 && grid[y][x+1]) this.constraints.push(new Constraint(p, grid[y][x+1]));
+                if (y < rows - 1 && grid[y+1][x]) this.constraints.push(new Constraint(p, grid[y+1][x]));
+                if (y < rows - 1 && x < cols - 1 && grid[y+1][x+1]) this.constraints.push(new Constraint(p, grid[y+1][x+1], true));
+                if (y < rows - 1 && x > 0 && grid[y+1][x-1]) this.constraints.push(new Constraint(p, grid[y+1][x-1], true));
+            }
+        }
+        
+        this.iceberg = {
+            circles: [
+                { x: 1600, y: 200, r: 300 },  
+                { x: 1480, y: -50, r: 120 },  
+                { x: 1650, y: -20, r: 150 }   
+            ]
+        };
+        for (let ice of this.iceberg.circles) {
+            ice.points = [];
+            let segments = Math.floor(ice.r / 6);
+            for (let i = 0; i < segments; i++) {
+                let angle = (i / segments) * Math.PI * 2;
+                let rOff = ice.r + (Math.random() * 30 - 15);
+                ice.points.push({ x: Math.cos(angle) * rOff, y: Math.sin(angle) * rOff });
+            }
+        }
+
+        this.cam.x = 0;
+        this.cam.y = startY + 100;
+        this.cam.zoom = 1.2;
+    }
+
+    getWaveHeight(x, offset = 0) {
+        return CONFIG.waterBaseLevel + 
+               Math.sin(x * 0.005 + this.time * 2 + offset) * 15 + 
+               Math.sin(x * 0.01 + this.time * 3 + offset) * 5;
+    }
+
+    getTerrainHeight(x) {
+        const baseFloor = 1400; 
+        return baseFloor + 
+               Math.sin(x * 0.0015) * 180 + 
+               Math.sin(x * 0.004 + 100) * 60 + 
+               Math.sin(x * 0.012 + 45) * 20;
+    }
+
+    update(dt) {
+        if (this.isPaused) return;
+        
+        const scaledDt = dt * this.timeScale;
+        this.time += scaledDt;
+
+        this.handleTools();
+
+        let thrustDir = 0;
+        if (this.keys.left) thrustDir -= 1;
+        if (this.keys.right) thrustDir += 1;
+
+        const activeGravity = this.gravityEnabled ? CONFIG.gravity : 0;
+        
+        let frameWeight = 0;
+        let frameBuoyancy = 0;
+        let isEngineActive = false;
+
+        // Visual Smoke Emission
+        if (Math.random() < (thrustDir !== 0 ? 0.6 : 0.1) * this.timeScale) {
+            let topNodes = this.particles.filter(p => Math.abs(p.origY - (-300)) < 1);
+            if (topNodes.length > 0) {
+                const stackTargets = [-300, -120, 60, 240];
+                let targetX = stackTargets[Math.floor(Math.random() * stackTargets.length)];
+                let node = topNodes.reduce((prev, curr) => Math.abs(curr.origX - targetX) < Math.abs(prev.origX - targetX) ? curr : prev, topNodes[0]);
+                
+                if (node && Math.abs(node.origX - targetX) < 50 && node.y < this.getWaveHeight(node.x)) {
+                    this.vfx.push(new VisualParticle(
+                        node.x + (Math.random()-0.5)*20, node.y - 80, 
+                        thrustDir * 20 + (Math.random()-0.5)*10, -20 - Math.random()*20,
+                        `rgba(20, 20, 25, 0.4)`, 
+                        Math.random() * 2.0 + 2.0, 'smoke'
+                    ));
+                }
+            }
+        }
+
+        for (let i = 0; i < this.particles.length; i++) {
+            let p = this.particles[i];
+            
+            const localWaveY = this.getWaveHeight(p.x);
+            let isSubmerged = p.y > localWaveY;
+
+            if (p.isExposed) {
+                if (isSubmerged && p.waterContent < 1.0) p.waterContent = Math.min(1.0, p.waterContent + CONFIG.floodRate * scaledDt);
+                else if (!isSubmerged && p.waterContent > 0.0) p.waterContent = Math.max(0.0, p.waterContent - (CONFIG.floodRate * 0.5) * scaledDt);
+            }
+            
+            p.mass = p.baseMass + (p.waterContent * CONFIG.waterMassMult);
+
+            let gravityForce = activeGravity * p.mass;
+            p.applyForce(0, gravityForce);
+            frameWeight += gravityForce;
+
+            if (thrustDir !== 0 && !p.isExposed) {
+                p.applyForce(thrustDir * CONFIG.enginePower * p.mass, 0);
+                isEngineActive = true;
+            }
+
+            if (this.iceberg) {
+                for (let ice of this.iceberg.circles) {
+                    let dx = p.x - ice.x; let dy = p.y - ice.y;
+                    let dSq = dx*dx + dy*dy; let rSq = ice.r * ice.r;
+                    
+                    if (dSq < rSq && dSq > 0.0001) {
+                        let dist = Math.sqrt(dSq);
+                        p.x = ice.x + (dx/dist) * ice.r;
+                        let penetration = ice.r - dist;
+                        
+                        if (penetration > 2.0) {
+                            for (let c of this.constraints) {
+                                if ((c.p1 === p || c.p2 === p) && !c.isBroken) {
+                                    c.isBroken = true; c.p1.isExposed = true; c.p2.isExposed = true;
+                                    this.audio.playSnap();
+                                    if (Math.random() > 0.6) this.spawnSplash(p.x, p.y);
+                                    break; 
+                                }
+                            }
+                        }
+                        
+                        let speedSq = distSq(p.x, p.y, p.oldX, p.oldY);
+                        if (speedSq > 1.0) this.audio.playGrind();
+
+                        p.oldX = p.x - (p.x - p.oldX) * 0.3;
+                        p.oldY = p.y - (p.y - p.oldY) * 0.3;
+                    }
+                }
+            }
+
+            let drag = CONFIG.airDrag;
+            
+            if (isSubmerged) {
+                const depth = p.y - localWaveY;
+                let buoyancyForce = depth * CONFIG.waterDensity;
+                buoyancyForce *= (1.0 - p.waterContent); 
+                
+                let maxB = (p.baseMass * activeGravity) * 3.0;
+                buoyancyForce = Math.min(maxB, buoyancyForce);
+                
+                p.applyForce(0, -buoyancyForce);
+                frameBuoyancy += buoyancyForce;
+                drag = CONFIG.waterDrag; 
+
+                if (p.oldY <= localWaveY && p.y - p.oldY > 5) {
+                    for(let k=0; k<2; k++) this.spawnSplash(p.x, localWaveY);
+                    this.audio.playSplash();
+                }
+            }
+
+            let vx = (p.x - p.oldX) * drag;
+            let vy = (p.y - p.oldY) * drag;
+
+            p.oldX = p.x; p.oldY = p.y;
+            
+            p.x += vx + p.ax * (scaledDt * scaledDt);
+            p.y += vy + p.ay * (scaledDt * scaledDt);
+            
+            p.ax = 0; p.ay = 0;
+
+            const localTerrainY = this.getTerrainHeight(p.x);
+            if (p.y > localTerrainY) { 
+                p.y = localTerrainY; 
+                p.oldY = p.y + vy * 0.2; 
+                p.oldX = p.x + vx * 0.4; 
+                
+                if (vx * vx + vy * vy > 2.0 && Math.random() > 0.95) {
+                    this.audio.playGrind();
+                    // Dirt puff
+                    this.vfx.push(new VisualParticle(
+                        p.x, p.y, (Math.random()-0.5)*30, -Math.random()*20,
+                        'rgba(156, 133, 98, 0.4)', Math.random()*0.5+0.5, 'smoke'
+                    ));
+                }
+            }
+        }
+
+        for (let iter = 0; iter < CONFIG.physicsSteps; iter++) {
+            for (let i = 0; i < this.constraints.length; i++) {
+                this.constraints[i].solve(scaledDt);
+            }
+        }
+
+        for (let c of this.constraints) {
+            if (c.isBroken) continue;
+            let diffY = c.p1.y - c.p2.y;
+            let diffWater = c.p1.waterContent - c.p2.waterContent;
+            if (Math.abs(diffY) <= 5 && Math.abs(diffWater) > 0.05) {
+                let flow = diffWater * 0.1 * (scaledDt * 60);
+                c.p1.waterContent -= flow;
+                c.p2.waterContent += flow;
+            }
+        }
+
+        this.constraints = this.constraints.filter(c => !c.isBroken);
+
+        for (let i = this.vfx.length - 1; i >= 0; i--) {
+            this.vfx[i].update(scaledDt);
+            if (this.vfx[i].life <= 0) this.vfx.splice(i, 1);
+        }
+
+        if (this.followShip && this.particles.length > 0) {
+            let cx = 0, cy = 0;
+            for(let p of this.particles) { cx += p.x; cy += p.y; }
+            cx /= this.particles.length; cy /= this.particles.length;
+            this.cam.x += (cx - this.cam.x) * 5.0 * dt;
+            this.cam.y += (cy - this.cam.y) * 5.0 * dt;
+        }
+
+        this.audio.setEngine(isEngineActive);
+
+        let breaches = this.particles.filter(p => p.isExposed).length;
+        this.debugStats = { weight: frameWeight, buoyancy: frameBuoyancy, breaches: breaches };
+    }
+
+    handleTools() {
+        if (!this.mouse.leftDown) return;
+
+        if (this.currentTool === 'drag' && this.draggedParticle) {
+            this.draggedParticle.x += (this.mouse.worldX - this.draggedParticle.x) * 0.2;
+            this.draggedParticle.y += (this.mouse.worldY - this.draggedParticle.y) * 0.2;
+            this.draggedParticle.oldX = this.draggedParticle.x;
+            this.draggedParticle.oldY = this.draggedParticle.y;
+        } 
+        else if (this.currentTool === 'cut') {
+            const rSq = CONFIG.cutRadius * CONFIG.cutRadius;
+            let cutMade = false;
+            for (let c of this.constraints) {
+                if (distToSegmentSq(this.mouse.worldX, this.mouse.worldY, c.p1.x, c.p1.y, c.p2.x, c.p2.y) < rSq) {
+                    if (!c.isBroken) cutMade = true;
+                    c.isBroken = true; c.p1.isExposed = true; c.p2.isExposed = true;
+                }
+            }
+            if (cutMade) this.audio.playSnap();
+        }
+    }
+
+    applyExplosion(wx, wy) {
+        this.audio.playExplosion();
+        const radSq = CONFIG.bombRadius * CONFIG.bombRadius;
+        
+        for (let p of this.particles) {
+            let dSq = distSq(wx, wy, p.x, p.y);
+            if (dSq < radSq && dSq > 1) {
+                let force = (1 - Math.sqrt(dSq)/CONFIG.bombRadius) * CONFIG.bombForce;
+                let angle = Math.atan2(p.y - wy, p.x - wx);
+                p.applyForce(Math.cos(angle) * force, Math.sin(angle) * force);
+            }
+        }
+
+        for (let c of this.constraints) {
+            let cx = (c.p1.x + c.p2.x)/2; let cy = (c.p1.y + c.p2.y)/2;
+            if (distSq(wx, wy, cx, cy) < radSq * 0.6) {
+                c.isBroken = true; c.p1.isExposed = true; c.p2.isExposed = true;
+            }
+        }
+
+        for(let i=0; i<40; i++) {
+            let ang = Math.random() * Math.PI * 2;
+            let spd = Math.random() * 600 + 100;
+            let type = Math.random() > 0.5 ? 'debris' : 'smoke';
+            let color = type === 'smoke' ? 'rgba(50,50,50,0.8)' : '#f97316';
+            if (type === 'debris' && Math.random() > 0.5) color = '#fef08a';
+            this.vfx.push(new VisualParticle(
+                wx, wy, Math.cos(ang)*spd, Math.sin(ang)*spd,
+                color, Math.random()*0.6 + 0.2, type
+            ));
+        }
+    }
+
+    spawnSplash(x, y) {
+        this.vfx.push(new VisualParticle(
+            x + (Math.random()-0.5)*15, y,
+            (Math.random()-0.5)*120, -Math.random()*250 - 50,
+            'rgba(224, 242, 254, 0.7)', 
+            Math.random() * 0.5 + 0.2, 'splash'
+        ));
+    }
+
+    onKeyDown(e) {
+        this.audio.init(); this.audio.resume();
+        if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') this.keys.left = true;
+        if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') this.keys.right = true;
+    }
+
+    onKeyUp(e) {
+        if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') this.keys.left = false;
+        if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') this.keys.right = false;
+    }
+
+    screenToWorld(sx, sy) {
+        return {
+            x: (sx - this.canvas.width/2) / this.cam.zoom + this.cam.x,
+            y: (sy - this.canvas.height/2) / this.cam.zoom + this.cam.y
+        };
+    }
+
+    onMouseDown(e) {
+        this.audio.init(); this.audio.resume();
+        if (e.button === 0) this.mouse.leftDown = true;
+        if (e.button === 2) this.mouse.rightDown = true;
+
+        let w = this.screenToWorld(e.clientX, e.clientY);
+        this.mouse.worldX = w.x; this.mouse.worldY = w.y;
+
+        if (this.currentTool === 'drag' && this.mouse.leftDown) {
+            let closest = null; let minDist = 400; 
+            for (let p of this.particles) {
+                let dSq = distSq(w.x, w.y, p.x, p.y);
+                if (dSq < minDist) { minDist = dSq; closest = p; }
+            }
+            this.draggedParticle = closest;
+        } else if (this.currentTool === 'bomb' && this.mouse.leftDown) {
+            this.applyExplosion(w.x, w.y);
+            this.mouse.leftDown = false; 
+        }
+    }
+
+    onMouseMove(e) {
+        let w = this.screenToWorld(e.clientX, e.clientY);
+        if (this.mouse.rightDown) {
+            this.cam.x -= (e.clientX - this.mouse.screenX) / this.cam.zoom;
+            this.cam.y -= (e.clientY - this.mouse.screenY) / this.cam.zoom;
+            this.followShip = false;
+            document.getElementById('btn-follow').classList.remove('active');
+        }
+        this.mouse.screenX = e.clientX; this.mouse.screenY = e.clientY;
+        this.mouse.worldX = w.x; this.mouse.worldY = w.y;
+    }
+
+    onMouseUp(e) {
+        if (e.button === 0) { this.mouse.leftDown = false; this.draggedParticle = null; }
+        if (e.button === 2) this.mouse.rightDown = false;
+    }
+
+    onWheel(e) {
+        e.preventDefault();
+        const zoomFactor = 1.1;
+        if (e.deltaY < 0) this.cam.zoom *= zoomFactor;
+        else this.cam.zoom /= zoomFactor;
+        this.cam.zoom = Math.max(0.1, Math.min(this.cam.zoom, 5.0));
+    }
+
+    render() {
+        // Night Sky Background
+        let skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        skyGrad.addColorStop(0, '#020617'); // Very dark blue
+        skyGrad.addColorStop(1, '#0f172a'); // Slightly lighter horizon
+        this.ctx.fillStyle = skyGrad;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.ctx.save();
+        this.ctx.translate(this.canvas.width/2, this.canvas.height/2);
+        this.ctx.scale(this.cam.zoom, this.cam.zoom);
+        this.ctx.translate(-this.cam.x, -this.cam.y);
+
+        const w = this.canvas.width; const h = this.canvas.height;
+        const viewLeft = this.cam.x - (w/2)/this.cam.zoom;
+        const viewRight = this.cam.x + (w/2)/this.cam.zoom;
+        const viewTop = this.cam.y - (h/2)/this.cam.zoom;
+        const viewBottom = this.cam.y + (h/2)/this.cam.zoom;
+        const safeRenderDepth = Math.max(viewBottom, 3000); 
+
+        // Draw Stars
+        this.ctx.fillStyle = '#ffffff';
+        for (let star of this.stars) {
+            if (star.x < viewLeft || star.x > viewRight || star.y < viewTop || star.y > Math.min(viewBottom, CONFIG.waterBaseLevel)) continue;
+            this.ctx.globalAlpha = star.a;
+            this.ctx.beginPath(); this.ctx.arc(star.x, star.y, star.s / this.cam.zoom, 0, Math.PI*2); this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1.0;
+
+        // Glowing Moon
+        const moonX = 0; const moonY = -800;
+        if (moonX > viewLeft - 200 && moonX < viewRight + 200 && moonY > viewTop - 200 && moonY < viewBottom + 200) {
+            this.ctx.shadowBlur = 60 / this.cam.zoom;
+            this.ctx.shadowColor = '#bae6fd';
+            this.ctx.fillStyle = '#f0f9ff';
+            this.ctx.beginPath(); this.ctx.arc(moonX, moonY, 80, 0, Math.PI*2); this.ctx.fill();
+            this.ctx.shadowBlur = 0;
+        }
+
+        // BACKGROUND WATER (Behind Ship)
+        let bgWaterGrad = this.ctx.createLinearGradient(0, CONFIG.waterBaseLevel, 0, 1600);
+        bgWaterGrad.addColorStop(0, 'rgba(14, 165, 233, 0.2)'); // Light surface
+        bgWaterGrad.addColorStop(0.3, 'rgba(3, 105, 161, 0.5)'); // Mid deep
+        bgWaterGrad.addColorStop(1, 'rgba(2, 6, 23, 0.95)'); // Pitch black bottom
+        
+        this.ctx.fillStyle = bgWaterGrad;
+        this.ctx.beginPath();
+        this.ctx.moveTo(viewLeft, safeRenderDepth);
+        const step = 60; 
+        for (let x = viewLeft; x <= viewRight + step; x += step) {
+            this.ctx.lineTo(x, this.getWaveHeight(x, 10)); // Back wave offset
+        }
+        this.ctx.lineTo(viewRight, safeRenderDepth);
+        this.ctx.fill();
+
+        // Iceberg
+        if (this.iceberg) {
+            for (let ice of this.iceberg.circles) {
+                if (ice.x + ice.r < viewLeft || ice.x - ice.r > viewRight) continue;
+                
+                let iceGrad = this.ctx.createLinearGradient(ice.x, ice.y - ice.r, ice.x, ice.y + ice.r);
+                iceGrad.addColorStop(0, '#ffffff');
+                iceGrad.addColorStop(1, '#7dd3fc');
+
+                this.ctx.fillStyle = iceGrad;
+                this.ctx.strokeStyle = '#38bdf8';
+                this.ctx.lineWidth = 3 / this.cam.zoom;
+                
+                this.ctx.beginPath();
+                for (let i = 0; i < ice.points.length; i++) {
+                    let px = ice.x + ice.points[i].x; let py = ice.y + ice.points[i].y;
+                    if (i === 0) this.ctx.moveTo(px, py); else this.ctx.lineTo(px, py);
+                }
+                this.ctx.closePath(); 
+                
+                this.ctx.shadowBlur = 20 / this.cam.zoom;
+                this.ctx.shadowColor = '#7dd3fc';
+                this.ctx.fill(); 
+                this.ctx.shadowBlur = 0;
+                this.ctx.stroke();
+            }
+        }
+
+        // Ship Structure - TITANIC
+        this.ctx.lineCap = 'round';
+        for (let c of this.constraints) {
+            if (c.p1.x < viewLeft-100 && c.p2.x < viewLeft-100) continue;
+            if (c.p1.x > viewRight+100 && c.p2.x > viewRight+100) continue;
+            if (c.p1.y < viewTop-100 && c.p2.y < viewTop-100) continue;
+
+            this.ctx.beginPath();
+            this.ctx.moveTo(c.p1.x, c.p1.y);
+            this.ctx.lineTo(c.p2.x, c.p2.y);
+
+            if (this.showStress) {
+                let r = 0, g = 255, b = 0;
+                if (c.stressRatio < 0.5) r = Math.floor(c.stressRatio * 2 * 255);
+                else { r = 255; g = Math.floor((1 - (c.stressRatio - 0.5) * 2) * 255); }
+                this.ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+                this.ctx.lineWidth = (1 + c.stressRatio * 2) / this.cam.zoom;
+            } else {
+                let midY = (c.p1.origY + c.p2.origY) / 2;
+                if (midY <= -240) this.ctx.strokeStyle = '#e2e8f0'; // White cabins
+                else if (midY <= -165) this.ctx.strokeStyle = '#1e293b'; // Black Hull
+                else if (midY <= -147) this.ctx.strokeStyle = '#d1d5db'; // White stripe
+                else this.ctx.strokeStyle = '#7f1d1d'; // Red bottom
+                
+                let isDiag = c.restLength > CONFIG.nodeSpacing * 1.1;
+                this.ctx.lineWidth = isDiag ? CONFIG.nodeSpacing * 1.6 : CONFIG.nodeSpacing * 1.3;
+            }
+            this.ctx.stroke();
+        }
+
+        // Titanic Details
+        if (!this.showStress) {
+            let topNodes = this.particles.filter(p => Math.abs(p.origY - (-300)) < 1).sort((a,b) => a.origX - b.origX);
+            
+            // Smokestacks
+            const stackTargets = [-300, -120, 60, 240]; 
+            for (let targetX of stackTargets) {
+                if(topNodes.length === 0) continue;
+                let node = topNodes.reduce((prev, curr) => Math.abs(curr.origX - targetX) < Math.abs(prev.origX - targetX) ? curr : prev, topNodes[0]);
+                
+                if (node && Math.abs(node.origX - targetX) < 50) {
+                    let rightNeighbor = topNodes.find(p => p.origX > node.origX);
+                    let leftNeighbor = topNodes.find(p => p.origX < node.origX);
+                    
+                    let dx = 1, dy = 0;
+                    if (rightNeighbor && leftNeighbor) { dx = rightNeighbor.x - leftNeighbor.x; dy = rightNeighbor.y - leftNeighbor.y; } 
+                    else if (rightNeighbor) { dx = rightNeighbor.x - node.x; dy = rightNeighbor.y - node.y; }
+                    
+                    let angle = Math.atan2(dy, dx);
+                    let stackAngle = angle - Math.PI/2 + 0.12; 
+                    let stackLength = 80;
+                    let topX = node.x + Math.cos(stackAngle) * stackLength;
+                    let topY = node.y + Math.sin(stackAngle) * stackLength;
+                    
+                    this.ctx.beginPath(); this.ctx.moveTo(node.x, node.y); this.ctx.lineTo(topX, topY);
+                    this.ctx.strokeStyle = '#d97706'; this.ctx.lineWidth = 26; this.ctx.stroke();
+
+                    let bX = node.x + Math.cos(stackAngle) * (stackLength * 0.75);
+                    let bY = node.y + Math.sin(stackAngle) * (stackLength * 0.75);
+                    this.ctx.beginPath(); this.ctx.moveTo(bX, bY); this.ctx.lineTo(topX, topY);
+                    this.ctx.strokeStyle = '#0f172a'; this.ctx.lineWidth = 26; this.ctx.stroke();
+                }
+            }
+
+            // Glowing Windows (turn off when submerged)
+            for (let p of this.particles) {
+                if (p.x < viewLeft-50 || p.x > viewRight+50 || p.y < viewTop-50 || p.y > viewBottom+50) continue;
+                
+                let isWindow = false;
+                let isPorthole = false;
+                
+                if (Math.abs(p.origY - (-264)) < 1 || Math.abs(p.origY - (-282)) < 1) {
+                    if (Math.abs(p.origX) % 36 < 10) isWindow = true;
+                }
+                if (Math.abs(p.origY - (-192)) < 1 || Math.abs(p.origY - (-210)) < 1) {
+                    if (Math.abs(p.origX) % 54 < 10) isPorthole = true;
+                }
+
+                if (isWindow || isPorthole) {
+                    let submerged = p.y > this.getWaveHeight(p.x);
+                    
+                    if (!submerged && p.waterContent < 0.1) {
+                        this.ctx.shadowBlur = 10 / this.cam.zoom;
+                        this.ctx.shadowColor = '#fef08a';
+                        this.ctx.fillStyle = '#fef08a';
+                    } else {
+                        this.ctx.shadowBlur = 0;
+                        this.ctx.fillStyle = '#1e293b'; // Dead lights
+                    }
+
+                    if (isWindow) this.ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+                    else {
+                        this.ctx.beginPath(); this.ctx.arc(p.x, p.y, 2, 0, Math.PI*2); this.ctx.fill();
+                    }
+                }
+            }
+            this.ctx.shadowBlur = 0;
+
+            // Lifeboats
+            if (topNodes.length > 0) {
+                this.ctx.fillStyle = '#f8fafc';
+                for (let i = 5; i < topNodes.length - 5; i += 6) {
+                    let p = topNodes[i];
+                    this.ctx.save(); this.ctx.translate(p.x, p.y);
+                    let right = topNodes[i+1]; let left = topNodes[i-1];
+                    if (left && right) this.ctx.rotate(Math.atan2(right.y - left.y, right.x - left.x));
+                    this.ctx.translate(0, -12);
+                    this.ctx.beginPath(); this.ctx.ellipse(0, 0, 9, 3.5, 0, 0, Math.PI*2); this.ctx.fill();
+                    this.ctx.restore();
+                }
+            }
+        }
+
+        // FOREGROUND WATER & ABYSS OVERLAY (In front of ship to fade it out)
+        let fgWaterGrad = this.ctx.createLinearGradient(0, CONFIG.waterBaseLevel, 0, 1600);
+        fgWaterGrad.addColorStop(0, 'rgba(2, 132, 199, 0.1)'); 
+        fgWaterGrad.addColorStop(0.2, 'rgba(3, 105, 161, 0.4)'); 
+        fgWaterGrad.addColorStop(0.8, 'rgba(2, 6, 23, 0.9)'); // Very thick fog deep down
+        fgWaterGrad.addColorStop(1, 'rgba(0, 0, 0, 1.0)'); 
+        
+        this.ctx.fillStyle = fgWaterGrad;
+        this.ctx.beginPath();
+        this.ctx.moveTo(viewLeft, safeRenderDepth);
+        for (let x = viewLeft; x <= viewRight + step; x += step) {
+            this.ctx.lineTo(x, this.getWaveHeight(x, 0)); // Front wave
+        }
+        this.ctx.lineTo(viewRight, safeRenderDepth);
+        this.ctx.fill();
+
+        // Moon Reflection on water
+        this.ctx.fillStyle = 'rgba(186, 230, 253, 0.2)';
+        this.ctx.beginPath();
+        for (let x = -150; x <= 150; x += 10) {
+            this.ctx.fillRect(moonX + x, this.getWaveHeight(moonX + x), (150 - Math.abs(x)) * 0.1, Math.random() * 20 + 10);
+        }
+
+        // Front Surface Line
+        this.ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+        this.ctx.lineWidth = 2 / this.cam.zoom;
+        this.ctx.beginPath();
+        for (let x = viewLeft; x <= viewRight + step; x += step) {
+            this.ctx.lineTo(x, this.getWaveHeight(x, 0));
+        }
+        this.ctx.stroke();
+        
+        // Ocean Floor (Sand Terrain) - Depths styling
+        let floorGrad = this.ctx.createLinearGradient(0, 1200, 0, 1800);
+        floorGrad.addColorStop(0, '#57534e'); // Dark grayish sand in the light
+        floorGrad.addColorStop(1, '#1c1917'); // Pitch black sand
+        
+        this.ctx.fillStyle = floorGrad; 
+        this.ctx.beginPath();
+        this.ctx.moveTo(viewLeft, safeRenderDepth);
+        
+        const sandStep = 30;
+        this.ctx.lineTo(viewLeft, this.getTerrainHeight(viewLeft));
+        for (let x = viewLeft; x <= viewRight + sandStep; x += sandStep) {
+            this.ctx.lineTo(x, this.getTerrainHeight(x));
+        }
+        this.ctx.lineTo(viewRight, safeRenderDepth);
+        this.ctx.fill();
+
+        this.ctx.strokeStyle = '#44403c';
+        this.ctx.lineWidth = 3 / this.cam.zoom;
+        this.ctx.beginPath();
+        for (let x = viewLeft; x <= viewRight + sandStep; x += sandStep) {
+            this.ctx.lineTo(x, this.getTerrainHeight(x));
+        }
+        this.ctx.stroke();
+
+        // Internal Water Flooding Detail
+        this.ctx.fillStyle = 'rgba(2, 132, 199, 0.5)';
+        for (let p of this.particles) {
+            if (p.waterContent > 0.05) {
+                let s = p.waterContent * 10;
+                this.ctx.fillRect(p.x - s/2, p.y - s/2, s, s);
+            }
+        }
+
+        // VFX (Explosions, Splashes, Smoke)
+        for (let v of this.vfx) {
+            this.ctx.globalAlpha = Math.max(0, v.life / v.maxLife);
+            this.ctx.fillStyle = v.color;
+            if (v.type === 'debris') {
+                this.ctx.shadowBlur = 15 / this.cam.zoom;
+                this.ctx.shadowColor = v.color;
+            } else {
+                this.ctx.shadowBlur = 0;
+            }
+            
+            this.ctx.beginPath(); 
+            this.ctx.arc(v.x, v.y, v.size / this.cam.zoom, 0, Math.PI*2); 
+            this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.shadowBlur = 0;
+
+        // Tool Previews
+        if (this.currentTool === 'cut') {
+            this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+            this.ctx.beginPath(); this.ctx.arc(this.mouse.worldX, this.mouse.worldY, CONFIG.cutRadius, 0, Math.PI*2); this.ctx.stroke();
+        } else if (this.currentTool === 'bomb') {
+            this.ctx.strokeStyle = 'rgba(249, 115, 22, 0.5)';
+            this.ctx.fillStyle = 'rgba(249, 115, 22, 0.1)';
+            this.ctx.beginPath(); this.ctx.arc(this.mouse.worldX, this.mouse.worldY, CONFIG.bombRadius, 0, Math.PI*2);
+            this.ctx.fill(); this.ctx.stroke();
+        }
+
+        this.ctx.restore();
+    }
+
+    loop(currentTime) {
+        let dt = (currentTime - this.lastTime) / 1000;
+        this.lastTime = currentTime;
+        if (dt > 0.1) dt = 0.1; 
+
+        this.accumulator += dt;
+        while (this.accumulator >= this.fixedDelta) {
+            this.update(this.fixedDelta);
+            this.accumulator -= this.fixedDelta;
+        }
+
+        this.render();
+        
+        this.framesThisSecond++;
+        if (currentTime > this.lastFpsUpdate + 1000) {
+            this.fps = this.framesThisSecond;
+            this.framesThisSecond = 0;
+            this.lastFpsUpdate = currentTime;
+            
+            document.getElementById('debug-info').innerHTML = 
+                `FPS: <span>${this.fps}</span> &nbsp;|&nbsp; Nodes: <span>${this.particles.length}</span> &nbsp;|&nbsp; Springs: <span>${this.constraints.length}</span>`;
+            
+            if (this.debugStats) {
+                let w = (this.debugStats.weight / 1000).toFixed(0);
+                let b = (this.debugStats.buoyancy / 1000).toFixed(0);
+                let breachClass = this.debugStats.breaches > 0 ? "stat-danger" : "";
+                document.getElementById('physics-info').innerHTML = 
+                    `Mass: <span>${w}</span>t &nbsp;|&nbsp; Buoyancy: <span>${b}</span>kN &nbsp;|&nbsp; Breaches: <span class="${breachClass}">${this.debugStats.breaches}</span>`;
+            }
+        }
+        requestAnimationFrame((time) => this.loop(time));
+    }
+
+    // --- UI BINDINGS ---
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        const btn = document.getElementById('btn-pause');
+        btn.innerText = this.isPaused ? "▶ Resume" : "Pause";
+        btn.classList.toggle('danger', this.isPaused);
+    }
+
+    toggleSpeedUp() {
+        this.timeScale = this.timeScale === 1.0 ? 2.5 : 1.0;
+        const btn = document.getElementById('btn-speedup');
+        btn.innerText = `2.5x Speed`;
+        btn.classList.toggle('active', this.timeScale > 1);
+    }
+
+    toggleGravity() {
+        this.gravityEnabled = !this.gravityEnabled;
+        document.getElementById('btn-grav').classList.toggle('active', this.gravityEnabled);
+    }
+
+    toggleStressView() {
+        this.showStress = !this.showStress;
+        document.getElementById('btn-stress').classList.toggle('active', this.showStress);
+    }
+
+    toggleFollow() {
+        this.followShip = !this.followShip;
+        document.getElementById('btn-follow').classList.toggle('active', this.followShip);
+    }
+
+    setTool(toolName) {
+        this.currentTool = toolName;
+        document.getElementById('tool-drag').classList.remove('active');
+        document.getElementById('tool-cut').classList.remove('active');
+        document.getElementById('tool-bomb').classList.remove('active');
+        document.getElementById('tool-' + toolName).classList.add('active');
+    }
+}
+
+// Start simulation when window loads
+const sim = new Simulator('simCanvas');
+
+</script>
+</body>
+</html>
