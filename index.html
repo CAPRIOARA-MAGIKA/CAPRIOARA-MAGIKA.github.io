@@ -457,12 +457,6 @@
                         <button id="tts-btn" onclick="generateTTS()" class="bg-cyber/20 hover:bg-cyber/30 text-cyber border border-cyber/50 px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
                             <span id="tts-icon">🔊</span> <span id="tts-text">Citește Răspunsul</span>
                         </button>
-                        
-                        <!-- Audio Player -->
-                        <div id="audio-player-container" class="hidden w-full mt-2">
-                            <audio id="audio-player" controls class="w-full h-10 rounded-full"></audio>
-                            <p class="text-xs text-slate-500 mt-2 text-right">*Voce generată de Gemini TTS</p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -471,7 +465,7 @@
 
     <!-- SIMULARE 1 (PODUL) -->
     <section id="simulare1" class="relative w-full h-screen bg-black overflow-hidden group border-t border-white/10">
-        <iframe src="Simulare1.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Pod"></iframe>
+        <iframe src="joc-pod.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Pod"></iframe>
         <div class="absolute inset-0 flex items-center justify-center text-slate-700 font-bold -z-10">
             [Aici se randează Canvas-ul pentru Simulare Pod]
         </div>
@@ -494,7 +488,7 @@
 
     <!-- SIMULARE 2 (STRUCTURĂ PLUTITOARE) -->
     <section id="simulare2" class="relative w-full h-screen bg-black overflow-hidden group border-t border-white/10">
-        <iframe src="Simulare2.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Apa"></iframe>
+        <iframe src="joc-apa.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Apa"></iframe>
         <div class="absolute inset-0 flex items-center justify-center text-slate-700 font-bold -z-10">
             [Aici se randează Canvas-ul pentru Simulare Apă]
         </div>
@@ -560,8 +554,12 @@
         // INTEGRARE GEMINI API ✨
         // ==========================================
         
-        // Cheia API este furnizată automat de mediul de execuție Canvas
-        const apiKey = "AIzaSyDJ-kdJcz_6cZMIZLIWureIwOBXbEEtb9w"; 
+        // ATENȚIE: Pentru a funcționa pe GitHub Pages, trebuie să obții o cheie API de la Google.
+        // 1. Intră pe: https://aistudio.google.com/app/apikey (cu contul de Google)
+        // 2. Apasă pe "Create API key"
+        // 3. Copiază cheia și lipește-o între ghilimelele de mai jos.
+        // Ex: const apiKey = "AIzaSyB-exemplu-cheie...";
+        const apiKey = "AIzaSyDJ-kdJcz_6cZMIZLIWureIwOBXbEEtb9w"; // <-- CHEIA TA A FOST ADĂUGATĂ AICI
         
         // Variabilă globală pentru a stoca textul brut pentru TTS
         window.lastGeneratedText = "";
@@ -633,9 +631,8 @@
 
             // Resetare stare TTS
             ttsContainer.classList.add('hidden');
-            document.getElementById('audio-player-container').classList.add('hidden');
-            document.getElementById('audio-player').src = "";
             document.getElementById('tts-btn').classList.remove('hidden');
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
 
             // Set UI to Loading
             btn.disabled = true;
@@ -651,7 +648,8 @@
 
             const fullPrompt = promptInput;
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            // FOLOSIM MODELUL PUBLIC ȘI STABIL: gemini-1.5-flash
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: fullPrompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] }
@@ -672,6 +670,8 @@
                     });
 
                     if (!response.ok) {
+                        const errText = await response.text();
+                        console.error("Eroare API:", errText);
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
@@ -707,126 +707,57 @@
                 // Scroll lin către rezultat
                 outputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
-                outputText.innerHTML = `<p class="text-red-400">Ne pare rău, a apărut o eroare la conectarea cu AI-ul. Te rugăm să încerci din nou mai târziu.</p>`;
+                outputText.innerHTML = `<p class="text-red-400">Ne pare rău, a apărut o eroare la conectarea cu AI-ul. Verifică consola (F12) pentru detalii.</p>`;
                 outputContainer.classList.remove('hidden');
             }
         }
 
-        // --- TEXT TO SPEECH (Generare Voce Gemini) ---
+        // --- TEXT TO SPEECH (Folosind Vocea Nativă a Browserului pentru stabilitate maximă) ---
         async function generateTTS() {
             if (!window.lastGeneratedText) return;
 
             const ttsBtn = document.getElementById('tts-btn');
             const ttsIcon = document.getElementById('tts-icon');
             const ttsText = document.getElementById('tts-text');
-            const audioPlayerContainer = document.getElementById('audio-player-container');
-            const audioPlayer = document.getElementById('audio-player');
 
-            ttsBtn.disabled = true;
-            const originalIcon = ttsIcon.innerHTML;
-            ttsIcon.innerHTML = `<div class="w-4 h-4 border-2 border-cyber/30 border-t-cyber rounded-full animate-spin"></div>`;
-            ttsText.innerText = "Se generează vocea...";
+            // Dacă se citește deja ceva, oprim
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                ttsIcon.innerHTML = "🔊";
+                ttsText.innerText = "Citește Răspunsul";
+                ttsBtn.classList.remove('bg-cyber/40', 'border-cyber');
+                return;
+            }
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-            const promptForTTS = "Citește următorul text pe un ton clar, profesional și captivant în limba română: " + window.lastGeneratedText;
+            ttsIcon.innerHTML = "⏹️";
+            ttsText.innerText = "Oprește citirea";
+            ttsBtn.classList.add('bg-cyber/40', 'border-cyber');
 
-            const payload = {
-                contents: [{ parts: [{ text: promptForTTS }] }],
-                generationConfig: {
-                    responseModalities: ["AUDIO"],
-                    speechConfig: {
-                        voiceConfig: {
-                            prebuiltVoiceConfig: { voiceName: "Aoede" } // Voce narativă
-                        }
-                    }
-                },
-                model: "gemini-2.5-flash-preview-tts"
+            // Folosim API-ul nativ din browser
+            const utterance = new SpeechSynthesisUtterance(window.lastGeneratedText);
+            utterance.lang = 'ro-RO'; // Setăm pe limba română
+            utterance.rate = 1.0; 
+            utterance.pitch = 1.0;
+
+            // Căutăm o voce nativă în română (depinde de sistemul de operare/browser)
+            const voices = window.speechSynthesis.getVoices();
+            const roVoice = voices.find(voice => voice.lang.includes('ro'));
+            if (roVoice) utterance.voice = roVoice;
+
+            // Resetăm butonul când se termină de citit
+            utterance.onend = function() {
+                ttsIcon.innerHTML = "🔊";
+                ttsText.innerText = "Citește Răspunsul";
+                ttsBtn.classList.remove('bg-cyber/40', 'border-cyber');
             };
 
-            let delay = 1000;
-            let retries = 5;
-            let success = false;
-            let data = null;
-
-            while (retries > 0 && !success) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    data = await response.json();
-                    success = true;
-                } catch (error) {
-                    retries--;
-                    if (retries === 0) break;
-                    await new Promise(res => setTimeout(res, delay));
-                    delay *= 2;
-                }
-            }
-
-            ttsIcon.innerHTML = originalIcon;
-            ttsText.innerText = "Citește Răspunsul";
-
-            if (success && data && data.candidates && data.candidates[0].content.parts[0].inlineData) {
-                const base64Audio = data.candidates[0].content.parts[0].inlineData.data;
-                const audioUrl = pcmToWav(base64Audio, 24000); 
-                
-                audioPlayer.src = audioUrl;
-                audioPlayerContainer.classList.remove('hidden');
-                ttsBtn.classList.add('hidden'); 
-                
-                audioPlayer.play().catch(e => console.log("Autoplay blockat de browser"));
-            } else {
-                ttsText.innerText = "Eroare la generare";
-                ttsBtn.classList.add('text-red-400', 'border-red-400/50');
-                setTimeout(() => {
-                    ttsBtn.disabled = false;
-                    ttsBtn.classList.remove('text-red-400', 'border-red-400/50');
-                    ttsText.innerText = "Încearcă din nou";
-                }, 3000);
-            }
-        }
-
-        // Decodor PCM16 la WAV
-        function pcmToWav(base64Data, sampleRate = 24000) {
-            const binaryString = atob(base64Data);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            
-            const buffer = new ArrayBuffer(44 + bytes.length);
-            const view = new DataView(buffer);
-            
-            const writeString = (view, offset, string) => {
-                for (let i = 0; i < string.length; i++) {
-                    view.setUint8(offset + i, string.charCodeAt(i));
-                }
+            utterance.onerror = function() {
+                ttsIcon.innerHTML = "🔊";
+                ttsText.innerText = "Eroare la citire";
+                ttsBtn.classList.remove('bg-cyber/40', 'border-cyber');
             };
-            
-            writeString(view, 0, 'RIFF');
-            view.setUint32(4, 36 + bytes.length, true);
-            writeString(view, 8, 'WAVE');
-            writeString(view, 12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeString(view, 36, 'data');
-            view.setUint32(40, bytes.length, true);
-            
-            const pcmData = new Uint8Array(buffer, 44);
-            pcmData.set(bytes);
-            
-            const blob = new Blob([view], { type: 'audio/wav' });
-            return URL.createObjectURL(blob);
+
+            window.speechSynthesis.speak(utterance);
         }
     </script>
 </body>
