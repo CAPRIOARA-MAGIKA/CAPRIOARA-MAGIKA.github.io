@@ -465,7 +465,7 @@
 
     <!-- SIMULARE 1 (PODUL) -->
     <section id="simulare1" class="relative w-full h-screen bg-black overflow-hidden group border-t border-white/10">
-        <iframe src="joc-pod.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Pod"></iframe>
+        <iframe src="Simulare1.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Pod"></iframe>
         <div class="absolute inset-0 flex items-center justify-center text-slate-700 font-bold -z-10">
             [Aici se randează Canvas-ul pentru Simulare Pod]
         </div>
@@ -488,7 +488,7 @@
 
     <!-- SIMULARE 2 (STRUCTURĂ PLUTITOARE) -->
     <section id="simulare2" class="relative w-full h-screen bg-black overflow-hidden group border-t border-white/10">
-        <iframe src="joc-apa.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Apa"></iframe>
+        <iframe src="Simulare2.html" class="w-full h-full border-0 absolute inset-0" title="Simulare Apa"></iframe>
         <div class="absolute inset-0 flex items-center justify-center text-slate-700 font-bold -z-10">
             [Aici se randează Canvas-ul pentru Simulare Apă]
         </div>
@@ -648,7 +648,7 @@
 
             const fullPrompt = promptInput;
 
-            // FOLOSIM MODELUL PUBLIC ȘI STABIL: gemini-1.5-flash
+            // FOLOSIM MODELUL PUBLIC ȘI STABIL: gemini-2.5-flash
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: fullPrompt }] }],
