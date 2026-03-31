@@ -559,7 +559,7 @@
         // 2. Apasă pe "Create API key"
         // 3. Copiază cheia și lipește-o între ghilimelele de mai jos.
         // Ex: const apiKey = "AIzaSyB-exemplu-cheie...";
-        const apiKey = "AIzaSyDJ-kdJcz_6cZMIZLIWureIwOBXbEEtb9w"; // <-- CHEIA TA A FOST ADĂUGATĂ AICI
+        const apiKey = "AIzaSyDWRcE-XAnIUiYLRtnoJRJL25o1YuSvP8g"; // <-- CHEIA TA A FOST ADĂUGATĂ AICI
         
         // Variabilă globală pentru a stoca textul brut pentru TTS
         window.lastGeneratedText = "";
@@ -649,7 +649,7 @@
             const fullPrompt = promptInput;
 
             // FOLOSIM MODELUL PUBLIC ȘI STABIL: gemini-1.5-flash
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: fullPrompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] }
