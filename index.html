@@ -660,6 +660,7 @@
             let retries = 5;
             let success = false;
             let data = null;
+            let lastErrorMessage = "Eroare necunoscută la conectare."; // Stocăm eroarea exactă
 
             while (retries > 0 && !success) {
                 try {
@@ -671,7 +672,8 @@
 
                     if (!response.ok) {
                         const errText = await response.text();
-                        console.error("Eroare API:", errText);
+                        lastErrorMessage = `Eroare HTTP ${response.status}: ${errText}`;
+                        console.error("Eroare API:", lastErrorMessage);
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
@@ -707,7 +709,17 @@
                 // Scroll lin către rezultat
                 outputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
-                outputText.innerHTML = `<p class="text-red-400">Ne pare rău, a apărut o eroare la conectarea cu AI-ul. Verifică consola (F12) pentru detalii.</p>`;
+                // AFIȘĂM EROAREA EXACTĂ PE ECRAN
+                outputText.innerHTML = `
+                    <div class="bg-red-900/50 border border-red-500/50 p-4 rounded-lg">
+                        <p class="text-red-400 font-bold mb-2">Conectarea cu Google AI a eșuat!</p>
+                        <p class="text-slate-300 text-sm font-mono overflow-auto">${lastErrorMessage}</p>
+                        <ul class="text-sm text-slate-400 mt-4 list-disc pl-5">
+                            <li>Dacă vezi <strong>Eroare HTTP 400</strong>: API Key-ul este invalid (verifică să nu aibă spații).</li>
+                            <li>Dacă vezi <strong>Eroare HTTP 403</strong>: Google îți blochează accesul (lipsă permisiuni sau restricții puse pe cheie).</li>
+                            <li>Asigură-te că ai generat cheia corect din <a href="https://aistudio.google.com/" target="_blank" class="text-cyber underline">Google AI Studio</a>.</li>
+                        </ul>
+                    </div>`;
                 outputContainer.classList.remove('hidden');
             }
         }
